@@ -51,6 +51,7 @@
   <build_depend>eigen_catkin</build_depend>
   <build_depend>ceres_catkin</build_depend>
   <build_depend>glog_catkin</build_depend>
+  <build_depend>coxgraph_mod</build_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>geometry_msgs</run_depend>
@@ -60,6 +61,7 @@
   <run_depend>opencv3_catkin</run_depend>
   <run_depend>ceres_catkin</run_depend>
   <run_depend>glog_catkin</run_depend>
+  <run_depend>coxgraph_mod</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

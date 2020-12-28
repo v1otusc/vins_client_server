@@ -1,5 +1,7 @@
 #include "estimator.h"
 
+#include <coxgraph_mod/vio_interface.h>
+
 Estimator::Estimator(): f_manager{Rs}
 {
     ROS_INFO("init begins");
@@ -165,6 +167,7 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
                 slideWindow();
                 f_manager.removeFailures();
                 ROS_INFO("Initialization finish!");
+                coxgraph::mod::toggleMapping(true);
                 last_R = Rs[WINDOW_SIZE];
                 last_P = Ps[WINDOW_SIZE];
                 last_R0 = Rs[0];
@@ -190,6 +193,7 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
             clearState();
             setParameter();
             ROS_WARN("system reboot!");
+            coxgraph::mod::toggleMapping(false);
             return;
         }
 
