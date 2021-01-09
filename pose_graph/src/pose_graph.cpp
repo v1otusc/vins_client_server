@@ -82,7 +82,7 @@ void PoseGraph::addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop) {
     if (cur_kf->findConnection(old_kf)) {
       if (earliest_loop_index > loop_index || earliest_loop_index == -1)
         earliest_loop_index = loop_index;
-      latest_loop_index = loop_index;
+      latest_loop_index = cur_kf->index;
 
       Vector3d w_P_old, w_P_cur, vio_P_cur;
       Matrix3d w_R_old, w_R_cur, vio_R_cur;
