@@ -51,6 +51,7 @@ int FAST_RELOCALIZATION;
 
 int AGENT_ID;
 int NUM_ODOM_CONNECTIONS;
+bool ENABLE_OPTIMIZATION = false;
 
 camodocal::CameraPtr m_camera;
 Eigen::Vector3d tic;
