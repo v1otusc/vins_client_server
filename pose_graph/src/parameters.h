@@ -27,4 +27,5 @@ extern int FAST_RELOCALIZATION;
 extern int AGENT_ID;
 extern int NUM_ODOM_CONNECTIONS;
 extern bool ENABLE_OPTIMIZATION;
+extern int LC_EVERY_N_FRAME;
 

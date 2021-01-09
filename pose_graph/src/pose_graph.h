@@ -76,6 +76,7 @@ private:
 	vector<bool> sequence_loop;
 	map<int, cv::Mat> image_pool;
 	int earliest_loop_index;
+	int latest_loop_index;
 	int base_sequence;
 
 	BriefDatabase db;

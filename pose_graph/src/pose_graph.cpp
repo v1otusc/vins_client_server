@@ -13,6 +13,7 @@ PoseGraph::PoseGraph() {
     t_optimization = std::thread(&PoseGraph::optimize4DoF, this);
   }
   earliest_loop_index = -1;
+  latest_loop_index = -1;
   t_drift = Eigen::Vector3d(0, 0, 0);
   yaw_drift = 0;
   r_drift = Eigen::Matrix3d::Identity();
@@ -61,6 +62,11 @@ void PoseGraph::addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop) {
   vio_R_cur = w_r_vio * vio_R_cur;
   cur_kf->updateVioPose(vio_P_cur, vio_R_cur);
   cur_kf->index = global_index;
+
+  if ((cur_kf->index < latest_loop_index + LC_EVERY_N_FRAME) &&
+      latest_loop_index != -1)
+    flag_detect_loop = false;
+
   global_index++;
   int loop_index = -1;
   if (flag_detect_loop) {
@@ -76,6 +82,7 @@ void PoseGraph::addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop) {
     if (cur_kf->findConnection(old_kf)) {
       if (earliest_loop_index > loop_index || earliest_loop_index == -1)
         earliest_loop_index = loop_index;
+      latest_loop_index = loop_index;
 
       Vector3d w_P_old, w_P_cur, vio_P_cur;
       Matrix3d w_R_old, w_R_cur, vio_R_cur;
