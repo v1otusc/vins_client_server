@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
     eigen_catkin
     comm_msgs
     brisk
+    coxgraph_mod
     )
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
