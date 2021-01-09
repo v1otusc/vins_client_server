@@ -14,6 +14,7 @@ PoseGraph::PoseGraph() {
   }
   earliest_loop_index = -1;
   latest_loop_index = -1;
+  last_sent_bvec = BowVector();
   t_drift = Eigen::Vector3d(0, 0, 0);
   yaw_drift = 0;
   r_drift = Eigen::Matrix3d::Identity();
@@ -207,6 +208,23 @@ void PoseGraph::addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop) {
   // posegraph_visualization->add_pose(P + Vector3d(VISUALIZATION_SHIFT_X,
   // VISUALIZATION_SHIFT_Y, 0), Q);
 
+  publishKeyFrame(cur_kf);
+
+  keyframelist.push_back(cur_kf);
+  publish();
+  m_keyframelist.unlock();
+}
+
+void PoseGraph::publishKeyFrame(KeyFrame *cur_kf) {
+  if (last_sent_bvec.size()) {
+    BowVector cur_bvec;
+    voc->transform(cur_kf->brief_descriptors, cur_bvec);
+    float score = voc->score(cur_bvec, last_sent_bvec);
+    if (score < kMinKFPubScore)
+      last_sent_bvec = cur_bvec;
+    else
+      return;
+  }
   comm_msgs::keyframe keyframe_msg;
   keyframe_msg.header.stamp = time_obj_.fromSec(cur_kf->time_stamp);
   keyframe_msg.frameId = cur_kf->index;
@@ -302,10 +320,6 @@ void PoseGraph::addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop) {
     keyframe_msg.keyPts.push_back(tmp_kp);
   }
   pub_keyframe_.publish(keyframe_msg);
-
-  keyframelist.push_back(cur_kf);
-  publish();
-  m_keyframelist.unlock();
 }
 
 void PoseGraph::loadKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop) {

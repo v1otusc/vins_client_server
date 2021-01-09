@@ -60,6 +60,7 @@ public:
 private:
 	int detectLoop(KeyFrame* keyframe, int frame_index);
 	void addKeyFrameIntoVoc(KeyFrame* keyframe);
+	void publishKeyFrame(KeyFrame* cur_kf);
 	void optimize4DoF();
 	void updatePath();
 	list<KeyFrame*> keyframelist;
@@ -87,6 +88,9 @@ private:
 	ros::Publisher pub_base_path;
 	ros::Publisher pub_pose_graph;
 	ros::Publisher pub_path[10];
+
+	BowVector last_sent_bvec;
+	constexpr static float kMinKFPubScore = 0.015;
 };
 
 template <typename T>
