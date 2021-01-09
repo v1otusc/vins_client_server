@@ -122,6 +122,7 @@ void KeyFrame::computeWindowBRIEFPoint() {
   for (int i = 0; i < (int)point_2d_uv.size(); i++) {
     cv::KeyPoint key;
     key.pt = point_2d_uv[i];
+    key.octave = 0;
     window_keypoints.push_back(key);
   }
   extractor(image, window_keypoints, window_brief_descriptors);
@@ -130,7 +131,7 @@ void KeyFrame::computeWindowBRIEFPoint() {
 void KeyFrame::computeBRIEFPoint() {
   BriefExtractor extractor(BRIEF_PATTERN_FILE.c_str());
   const int fast_th = 20; // corner detector response threshold
-  if (1)
+  if (0)
     cv::FAST(image, keypoints, fast_th, true);
   else {
     vector<cv::Point2f> tmp_pts;
