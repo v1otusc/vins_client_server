@@ -1,7 +1,6 @@
 #include "pose_graph.h"
 
 #include <comm_msgs/keyframe.h>
-#include <coxgraph_mod/vio_interface.h>
 #include <sensor_msgs/fill_image.h>
 #include <sensor_msgs/image_encodings.h>
 
@@ -36,6 +35,7 @@ void PoseGraph::registerPub(ros::NodeHandle &n) {
       n.advertise<visualization_msgs::MarkerArray>("pose_graph", 1000);
   for (int i = 1; i < 10; i++)
     pub_path[i] = n.advertise<nav_msgs::Path>("path_" + to_string(i), 1000);
+  vio_interface = new coxgraph::mod::VIOInterface(n, ros::NodeHandle("~"));
 }
 
 void PoseGraph::loadVocabulary(std::string voc_path) {
@@ -99,7 +99,7 @@ void PoseGraph::addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop) {
       T_A_B(0, 3) = relative_t(0);
       T_A_B(1, 3) = relative_t(1);
       T_A_B(2, 3) = relative_t(2);
-      coxgraph::mod::publishLoopClosure(old_kf->time_stamp, cur_kf->time_stamp,
+      vio_interface->publishLoopClosure(old_kf->time_stamp, cur_kf->time_stamp,
                                         T_A_B);
 
       if (ENABLE_OPTIMIZATION) {
