@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PointStamped.h>
+#include <coxgraph_mod/vio_interface.h>
 #include <nav_msgs/Odometry.h>
 #include <stdio.h>
 #include <ros/ros.h>
@@ -29,9 +30,7 @@
 #define SHOW_L_EDGE true
 #define SAVE_LOOP_PATH true
 
-using namespace DVision;
-using namespace DBoW2;
-
+using namespace DVision; using namespace DBoW2;
 class PoseGraph
 {
 public:
@@ -90,7 +89,9 @@ private:
 	ros::Publisher pub_path[10];
 
 	BowVector last_sent_bvec;
-	constexpr static float kMinKFPubScore = 0.015;
+	constexpr static float kMinKFPubScore = 1.0;
+
+        coxgraph::mod::VIOInterface* vio_interface;
 };
 
 template <typename T>
