@@ -89,7 +89,7 @@ private:
 	ros::Publisher pub_path[10];
 
 	BowVector last_sent_bvec;
-	constexpr static float kMinKFPubScore = 0.015;
+	constexpr static float kMinKFPubScore = 1.0;
 
         coxgraph::mod::VIOInterface* vio_interface;
 };
