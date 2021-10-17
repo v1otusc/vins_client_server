@@ -47,7 +47,6 @@
   <build_depend>nav_msgs</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>cv_bridge</build_depend>
-  <build_depend>opencv3_catkin</build_depend>
   <build_depend>eigen_catkin</build_depend>
   <build_depend>ceres_catkin</build_depend>
   <build_depend>glog_catkin</build_depend>
@@ -58,7 +57,6 @@
   <run_depend>nav_msgs</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>cv_bridge</run_depend>
-  <run_depend>opencv3_catkin</run_depend>
   <run_depend>ceres_catkin</run_depend>
   <run_depend>glog_catkin</run_depend>
   <run_depend>coxgraph_mod</run_depend>

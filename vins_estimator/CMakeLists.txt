@@ -9,9 +9,11 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
-#find_package(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED)
 
 include_directories(${catkin_INCLUDE_DIRS})
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+
 
 cs_add_library(vins_estimator_lib
     src/parameters.cpp
