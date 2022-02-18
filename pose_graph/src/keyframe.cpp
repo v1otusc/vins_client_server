@@ -4,12 +4,23 @@ template <typename Derived>
 static void reduceVector(vector<Derived> &v, vector<uchar> status) {
   int j = 0;
   for (int i = 0; i < int(v.size()); i++)
-    if (status[i])
-      v[j++] = v[i];
+    if (status[i]) v[j++] = v[i];
   v.resize(j);
 }
 
 // create keyframe online
+/**
+ * double _time_stamp,                  关键帧的时间戳
+ * int _index,                          关键帧index
+ * Vector3d &_vio_T_w_i,                位置向量
+ * Matrix3d &_vio_R_w_i,                旋转矩阵
+ * cv::Mat &_image,                     关键帧对应的图像
+ * vector<cv::Point3f> &_point_3d,      关键帧能观测到的3d点
+ * vector<cv::Point2f> &_point_2d_uv,   关键帧相机平面的2d点
+ * vector<cv::Point2f> &_point_2d_norm, 关键帧上关键点归一化后的坐标
+ * vector<double> &_point_id,           特征点的id
+ * int _sequence                        序列号
+ */
 KeyFrame::KeyFrame(double _time_stamp, int _index, Vector3d &_vio_T_w_i,
                    Matrix3d &_vio_R_w_i, cv::Mat &_image,
                    vector<cv::Point3f> &_point_3d,
@@ -37,8 +48,7 @@ KeyFrame::KeyFrame(double _time_stamp, int _index, Vector3d &_vio_T_w_i,
   sequence = _sequence;
   computeWindowBRIEFPoint();
   computeBRIEFPoint();
-  if (!DEBUG_IMAGE)
-    image.release();
+  if (!DEBUG_IMAGE) image.release();
 }
 
 // create keyframe online
@@ -80,8 +90,7 @@ KeyFrame::KeyFrame(double _time_stamp, int _index, Vector3d &_vio_T_w_i,
   computeBRIEFPoint(_brisk_extractor);
   computeWindowBRIEFPoint(_brisk_extractor);
 
-  if (!DEBUG_IMAGE)
-    image.release();
+  if (!DEBUG_IMAGE) image.release();
 }
 
 // load previous keyframe
@@ -130,7 +139,7 @@ void KeyFrame::computeWindowBRIEFPoint() {
 
 void KeyFrame::computeBRIEFPoint() {
   BriefExtractor extractor(BRIEF_PATTERN_FILE.c_str());
-  const int fast_th = 20; // corner detector response threshold
+  const int fast_th = 20;  // corner detector response threshold
   if (0)
     cv::FAST(image, keypoints, fast_th, true);
   else {
@@ -178,7 +187,6 @@ bool KeyFrame::searchInAera(const BRIEF::bitset window_descriptor,
   int bestDist = 128;
   int bestIndex = -1;
   for (int i = 0; i < (int)descriptors_old.size(); i++) {
-
     int dis = HammingDis(window_descriptor, descriptors_old[i]);
     if (dis < bestDist) {
       bestDist = dis;
@@ -218,8 +226,7 @@ void KeyFrame::FundmantalMatrixRANSAC(
     const std::vector<cv::Point2f> &matched_2d_old_norm,
     vector<uchar> &status) {
   int n = (int)matched_2d_cur_norm.size();
-  for (int i = 0; i < n; i++)
-    status.push_back(0);
+  for (int i = 0; i < n; i++) status.push_back(0);
   if (n >= 8) {
     vector<cv::Point2f> tmp_cur(n), tmp_old(n);
     for (int i = 0; i < (int)matched_2d_cur_norm.size(); i++) {
@@ -243,7 +250,7 @@ void KeyFrame::PnPRANSAC(const vector<cv::Point2f> &matched_2d_old_norm,
                          Eigen::Matrix3d &PnP_R_old) {
   // for (int i = 0; i < matched_3d.size(); i++)
   //	printf("3d x: %f, y: %f, z: %f\n",matched_3d[i].x, matched_3d[i].y,
-  //matched_3d[i].z ); printf("match size %d \n", matched_3d.size());
+  // matched_3d[i].z ); printf("match size %d \n", matched_3d.size());
   cv::Mat r, rvec, t, D, tmp_r;
   cv::Mat K = (cv::Mat_<double>(3, 3) << 1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0);
   Matrix3d R_inital;
@@ -273,8 +280,7 @@ void KeyFrame::PnPRANSAC(const vector<cv::Point2f> &matched_2d_old_norm,
                      10.0 / 460.0, 0.99, inliers);
   }
 
-  for (int i = 0; i < (int)matched_2d_old_norm.size(); i++)
-    status.push_back(0);
+  for (int i = 0; i < (int)matched_2d_old_norm.size(); i++) status.push_back(0);
 
   for (int i = 0; i < inliers.rows; i++) {
     int n = inliers.at<int>(i);
@@ -522,7 +528,6 @@ reduceVector(matched_id, status);
     // cout << "pnp relative_t " << relative_t.transpose() << endl;
     // cout << "pnp relative_yaw " << relative_yaw << endl;
     if (abs(relative_yaw) < 30.0 && relative_t.norm() < 20.0) {
-
       has_loop = true;
       loop_index = old_kf->index;
       loop_info << relative_t.x(), relative_t.y(), relative_t.z(),
@@ -618,8 +623,7 @@ BriefExtractor::BriefExtractor(const std::string &pattern_file) {
 
   // loads the pattern
   cv::FileStorage fs(pattern_file.c_str(), cv::FileStorage::READ);
-  if (!fs.isOpened())
-    throw string("Could not open file ") + pattern_file;
+  if (!fs.isOpened()) throw string("Could not open file ") + pattern_file;
 
   vector<int> x1, y1, x2, y2;
   fs["x1"] >> x1;

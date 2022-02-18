@@ -25,7 +25,6 @@
 #include "ThirdParty/DBoW/TemplatedDatabase.h"
 #include "ThirdParty/DBoW/TemplatedVocabulary.h"
 
-
 #define SHOW_S_EDGE false
 #define SHOW_L_EDGE true
 #define SAVE_LOOP_PATH true

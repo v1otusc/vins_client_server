@@ -1,5 +1,10 @@
 #pragma once
 
+#include <brisk/brisk.h>
+#include <eigen3/Eigen/Dense>
+#include <opencv2/core/eigen.hpp>
+#include <opencv2/opencv.hpp>
+#include <vector>
 #include "ThirdParty/DBoW/DBoW2.h"
 #include "ThirdParty/DVision/DVision.h"
 #include "camodocal/camera_models/CameraFactory.h"
@@ -8,11 +13,6 @@
 #include "parameters.h"
 #include "utility/tic_toc.h"
 #include "utility/utility.h"
-#include <brisk/brisk.h>
-#include <eigen3/Eigen/Dense>
-#include <opencv2/core/eigen.hpp>
-#include <opencv2/opencv.hpp>
-#include <vector>
 
 #define MIN_LOOP_NUM 25
 
@@ -21,7 +21,7 @@ using namespace std;
 using namespace DVision;
 
 class BriefExtractor {
-public:
+ public:
   virtual void operator()(const cv::Mat &im, vector<cv::KeyPoint> &keys,
                           vector<BRIEF::bitset> &descriptors) const;
   BriefExtractor(const std::string &pattern_file);
@@ -30,7 +30,7 @@ public:
 };
 
 class KeyFrame {
-public:
+ public:
   KeyFrame(double _time_stamp, int _index, Vector3d &_vio_T_w_i,
            Matrix3d &_vio_R_w_i, cv::Mat &_image,
            vector<cv::Point3f> &_point_3d, vector<cv::Point2f> &_point_2d_uv,
@@ -51,8 +51,8 @@ public:
   bool findConnection(KeyFrame *old_kf);
   void computeWindowBRIEFPoint();
   void computeBRIEFPoint();
-  void
-  computeWindowBRIEFPoint(brisk::BriskDescriptorExtractor &_brisk_extractor);
+  void computeWindowBRIEFPoint(
+      brisk::BriskDescriptorExtractor &_brisk_extractor);
   void computeBRIEFPoint(brisk::BriskDescriptorExtractor &_brisk_extractor);
   // void extractBrief();
   int HammingDis(const BRIEF::bitset &a, const BRIEF::bitset &b);
@@ -67,10 +67,10 @@ public:
                         const std::vector<BRIEF::bitset> &descriptors_old,
                         const std::vector<cv::KeyPoint> &keypoints_old,
                         const std::vector<cv::KeyPoint> &keypoints_old_norm);
-  void
-  FundmantalMatrixRANSAC(const std::vector<cv::Point2f> &matched_2d_cur_norm,
-                         const std::vector<cv::Point2f> &matched_2d_old_norm,
-                         vector<uchar> &status);
+  void FundmantalMatrixRANSAC(
+      const std::vector<cv::Point2f> &matched_2d_cur_norm,
+      const std::vector<cv::Point2f> &matched_2d_old_norm,
+      vector<uchar> &status);
   void PnPRANSAC(const vector<cv::Point2f> &matched_2d_old_norm,
                  const std::vector<cv::Point3f> &matched_3d,
                  std::vector<uchar> &status, Eigen::Vector3d &PnP_T_old,
