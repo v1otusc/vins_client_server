@@ -19,11 +19,9 @@ double current_time = -1;
 queue<sensor_msgs::ImuConstPtr> imu_buf;
 queue<sensor_msgs::PointCloudConstPtr> feature_buf;
 queue<sensor_msgs::PointCloudConstPtr> relo_buf;
-int sum_of_wait = 0;
 
 std::mutex m_buf;
 std::mutex m_state;
-std::mutex i_buf;
 std::mutex m_estimator;
 
 double latest_time;
@@ -38,7 +36,10 @@ bool init_feature = 0;
 bool init_imu = 1;
 double last_imu_t = 0;
 
+// 从 IMU 测量值 imu_msg 和上一个 PVQ 递推得到下一个 tmp_Q，tmp_P，tmp_V
+// 采用中值积分，世界坐标系
 void predict(const sensor_msgs::ImuConstPtr &imu_msg) {
+  // 先取当前的 imu 时间戳
   double t = imu_msg->header.stamp.toSec();
   if (init_imu) {
     latest_time = t;
@@ -58,14 +59,29 @@ void predict(const sensor_msgs::ImuConstPtr &imu_msg) {
   double rz = imu_msg->angular_velocity.z;
   Eigen::Vector3d angular_velocity{rx, ry, rz};
 
+  /**
+   * tmp_Q -- i 时刻 body 坐标系到世界坐标的旋转
+   * acc_0 -- i 时刻测量得到的线性加速度
+   * gyr_0 -- i 时刻测量得到的角速度
+   * un_acc_0 -- i 时刻计算出的真实线性加速度
+   * un_acc_1 -- i + 1 时刻计算出的真实线性加速度
+   * un_acc -- 中值法计算出的线性加速度
+   * un_gyr -- 中值法计算出的角速度
+   * tmp_Ba -- 加速度偏置
+   * tmp_Bg -- 角速度偏置
+   * estimator.g -- 世界坐标系的重力
+   */
   Eigen::Vector3d un_acc_0 = tmp_Q * (acc_0 - tmp_Ba) - estimator.g;
-
+  // 中值法计算角速度
   Eigen::Vector3d un_gyr = 0.5 * (gyr_0 + angular_velocity) - tmp_Bg;
+  // 此时 tmp_Q -- 当前时刻(i + 1) body 坐标系到世界坐标系的旋转
+  // tmp_Q 更新 -- 四元数右乘
   tmp_Q = tmp_Q * Utility::deltaQ(un_gyr * dt);
 
   Eigen::Vector3d un_acc_1 =
       tmp_Q * (linear_acceleration - tmp_Ba) - estimator.g;
 
+  // 中值法计算线性加速度
   Eigen::Vector3d un_acc = 0.5 * (un_acc_0 + un_acc_1);
 
   tmp_P = tmp_P + dt * tmp_V + 0.5 * dt * dt * un_acc;
@@ -92,6 +108,10 @@ void update() {
     predict(tmp_imu_buf.front());
 }
 
+/**
+ * @brief: 对图像和 IMU 数据进行对齐并组合，封装成 measurements
+ * @return measurements
+ */
 std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr>,
                       sensor_msgs::PointCloudConstPtr>>
 getMeasurements() {
@@ -102,18 +122,22 @@ getMeasurements() {
   while (true) {
     if (imu_buf.empty() || feature_buf.empty()) return measurements;
 
+    // IMU最新的时间戳小于最旧的图像帧，说明IMU数据太少，等待IMU刷新
     if (!(imu_buf.back()->header.stamp.toSec() >
           feature_buf.front()->header.stamp.toSec() + estimator.td)) {
       ROS_WARN("wait for imu, only should happen at the beginning");
       return measurements;
     }
 
+    // 说明最开始只有图像，过了很久来了 IMU 数据
+    // 但是第一帧图像太旧了，要丢弃第一帧图像
     if (!(imu_buf.front()->header.stamp.toSec() <
           feature_buf.front()->header.stamp.toSec() + estimator.td)) {
       ROS_WARN("throw img, only should happen at the beginning");
       feature_buf.pop();
       continue;
     }
+
     sensor_msgs::PointCloudConstPtr img_msg = feature_buf.front();
     feature_buf.pop();
 
@@ -130,6 +154,7 @@ getMeasurements() {
   return measurements;
 }
 
+// imu回调函数，将imu_msg保存到imu_buf，仅IMU状态递推并发布tmp_P,tmp_Q,tmp_V
 void imu_callback(const sensor_msgs::ImuConstPtr &imu_msg) {
   if (imu_msg->header.stamp.toSec() <= last_imu_t) {
     ROS_WARN("imu message in disorder!");
@@ -149,13 +174,16 @@ void imu_callback(const sensor_msgs::ImuConstPtr &imu_msg) {
     predict(imu_msg);
     std_msgs::Header header = imu_msg->header;
     header.frame_id = "world";
+    // 发布最新的由 IMU 直接递推得到的 PQV
     if (estimator.solver_flag == Estimator::SolverFlag::NON_LINEAR) {
-      // 发布由 IMU 积分得到的位姿
+      // publish lastest odometry inferred from IMUs
+      // frame_id 从 "world" -> "odom"
       pubLatestOdometry(tmp_P, tmp_Q, tmp_V, header);
     }
   }
 }
 
+// feature回调函数，将 feature_msg 放入 feature_buf
 void feature_callback(const sensor_msgs::PointCloudConstPtr &feature_msg) {
   if (!init_feature) {
     // skip the first detected feature, which doesn't contain optical flow speed
@@ -168,6 +196,7 @@ void feature_callback(const sensor_msgs::PointCloudConstPtr &feature_msg) {
   con.notify_one();
 }
 
+// restart回调函数，收到restart时清空feature_buf和imu_buf，估计器重置，时间重置
 void restart_callback(const std_msgs::BoolConstPtr &restart_msg) {
   if (restart_msg->data == true) {
     ROS_WARN("restart the estimator!");
@@ -176,9 +205,11 @@ void restart_callback(const std_msgs::BoolConstPtr &restart_msg) {
     while (!imu_buf.empty()) imu_buf.pop();
     m_buf.unlock();
     m_estimator.lock();
+    // 估计器重置
     estimator.clearState();
     estimator.setParameter();
     m_estimator.unlock();
+    // 时间重置
     current_time = -1;
     last_imu_t = 0;
   }
@@ -211,19 +242,21 @@ void process() {
         double img_t = img_msg->header.stamp.toSec() + estimator.td;
         if (t <= img_t) {
           if (current_time < 0) current_time = t;
+          // 相邻两 IMU 的时间间隔
           double dt = t - current_time;
           ROS_ASSERT(dt >= 0);
+          // 更新当前 imu 时间
           current_time = t;
+          // 线性加速度
           dx = imu_msg->linear_acceleration.x;
           dy = imu_msg->linear_acceleration.y;
           dz = imu_msg->linear_acceleration.z;
+          // 角速度
           rx = imu_msg->angular_velocity.x;
           ry = imu_msg->angular_velocity.y;
           rz = imu_msg->angular_velocity.z;
+          // 进行 imu 预积分
           estimator.processIMU(dt, Vector3d(dx, dy, dz), Vector3d(rx, ry, rz));
-          // printf("imu: dt:%f a: %f %f %f w: %f %f %f\n",dt, dx, dy, dz, rx,
-          // ry, rz);
-
         } else {
           double dt_1 = img_t - current_time;
           double dt_2 = t - img_t;
@@ -241,13 +274,12 @@ void process() {
           rz = w1 * rz + w2 * imu_msg->angular_velocity.z;
           estimator.processIMU(dt_1, Vector3d(dx, dy, dz),
                                Vector3d(rx, ry, rz));
-          // printf("dimu: dt:%f a: %f %f %f w: %f %f %f\n",dt_1, dx, dy, dz,
-          // rx, ry, rz);
         }
       }
 
       // set relocalization frame
-      sensor_msgs::PointCloudConstPtr relo_msg = NULL;
+      // 
+      /*sensor_msgs::PointCloudConstPtr relo_msg = NULL;
       while (!relo_buf.empty()) {
         relo_msg = relo_buf.front();
         relo_buf.pop();
@@ -273,7 +305,7 @@ void process() {
         frame_index = relo_msg->channels[0].values[7];
         estimator.setReloFrame(frame_stamp, frame_index, match_points, relo_t,
                                relo_r);
-      }
+      }*/
 
       ROS_DEBUG("processing vision data with stamp %f \n",
                 img_msg->header.stamp.toSec());
@@ -304,14 +336,13 @@ void process() {
       printStatistics(estimator, whole_t);
       std_msgs::Header header = img_msg->header;
       header.frame_id = "world";
-
       pubOdometry(estimator, header);
       pubKeyPoses(estimator, header);
       pubCameraPose(estimator, header);
       pubPointCloud(estimator, header);
       pubTF(estimator, header);
       pubKeyframe(estimator);
-      if (relo_msg != NULL) pubRelocalization(estimator);
+      // if (relo_msg != NULL) pubRelocalization(estimator);
       // ROS_ERROR("end: %f, at %f", img_msg->header.stamp.toSec(),
       // ros::Time::now().toSec());
     }

@@ -107,19 +107,18 @@ void FeatureManager::debugShow() {
   }
 }
 
+// 得到 frame_count_l 与 frame_count_r 两帧之间的对应特征点归一化坐标
 vector<pair<Vector3d, Vector3d>> FeatureManager::getCorresponding(
     int frame_count_l, int frame_count_r) {
   vector<pair<Vector3d, Vector3d>> corres;
   for (auto &it : feature) {
+    // 要找特征点的两帧在 it.start_frame~it.endFrame() 窗口范围内
     if (it.start_frame <= frame_count_l && it.endFrame() >= frame_count_r) {
       Vector3d a = Vector3d::Zero(), b = Vector3d::Zero();
       int idx_l = frame_count_l - it.start_frame;
       int idx_r = frame_count_r - it.start_frame;
-
       a = it.feature_per_frame[idx_l].point;
-
       b = it.feature_per_frame[idx_r].point;
-
       corres.push_back(make_pair(a, b));
     }
   }

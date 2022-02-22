@@ -54,6 +54,7 @@ void pubLatestOdometry(const Eigen::Vector3d &P, const Eigen::Quaterniond &Q,
 
   nav_msgs::Odometry odometry;
   odometry.header = header;
+  // world -> odom
   odometry.header.frame_id = "odom";
   odometry.pose.pose.position.x = P.x();
   odometry.pose.pose.position.y = P.y();
