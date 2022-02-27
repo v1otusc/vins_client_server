@@ -125,6 +125,7 @@ vector<pair<Vector3d, Vector3d>> FeatureManager::getCorresponding(
   return corres;
 }
 
+// 设置特征点的逆深度估计值
 void FeatureManager::setDepth(const VectorXd &x) {
   int feature_index = -1;
   for (auto &it_per_id : feature) {
@@ -158,6 +159,10 @@ void FeatureManager::clearDepth(const VectorXd &x) {
   }
 }
 
+/**
+ * @brief 窗口中所有被跟踪的特征点的逆深度组成的 vector
+ * @return VectorXd
+ */
 VectorXd FeatureManager::getDepthVector() {
   VectorXd dep_vec(getFeatureCount());
   int feature_index = -1;
@@ -165,15 +170,14 @@ VectorXd FeatureManager::getDepthVector() {
     it_per_id.used_num = it_per_id.feature_per_frame.size();
     if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2))
       continue;
-#if 1
+
     dep_vec(++feature_index) = 1. / it_per_id.estimated_depth;
-#else
-    dep_vec(++feature_index) = it_per_id->estimated_depth;
-#endif
   }
   return dep_vec;
 }
 
+// 对特征点进行三角化求深度（SVD分解）
+// (而不是 initial_sfm.cpp 的直接法)
 void FeatureManager::triangulate(Vector3d Ps[], Vector3d tic[],
                                  Matrix3d ric[]) {
   for (auto &it_per_id : feature) {
@@ -196,7 +200,6 @@ void FeatureManager::triangulate(Vector3d Ps[], Vector3d tic[],
 
     for (auto &it_per_frame : it_per_id.feature_per_frame) {
       imu_j++;
-
       Eigen::Vector3d t1 = Ps[imu_j] + Rs[imu_j] * tic[0];
       Eigen::Matrix3d R1 = Rs[imu_j] * ric[0];
       Eigen::Vector3d t = R0.transpose() * (t1 - t0);

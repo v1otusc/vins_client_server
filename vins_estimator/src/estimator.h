@@ -65,6 +65,9 @@ class Estimator {
   Matrix3d ric[NUM_OF_CAM];
   Vector3d tic[NUM_OF_CAM];
 
+  // 滑动窗口中的 [P,V,R,Ba,Bg]
+  // 均是当前时刻 PVQ -- 世界坐标系下（最终求得）
+  // bk -> world
   Vector3d Ps[(WINDOW_SIZE + 1)];
   Vector3d Vs[(WINDOW_SIZE + 1)];
   Matrix3d Rs[(WINDOW_SIZE + 1)];
@@ -102,6 +105,7 @@ class Estimator {
 
   double para_Pose[WINDOW_SIZE + 1][SIZE_POSE];
   double para_SpeedBias[WINDOW_SIZE + 1][SIZE_SPEEDBIAS];
+  // 特征点逆深度
   double para_Feature[NUM_OF_F][SIZE_FEATURE];
   double para_Ex_Pose[NUM_OF_CAM][SIZE_POSE];
   double para_Retrive_Pose[SIZE_POSE];

@@ -220,7 +220,7 @@ void restart_callback(const std_msgs::BoolConstPtr &restart_msg) {
 /**
  * @brief 等待并获取measurements：(IMUs, img_msg)s，计算dt
  *        estimator.processIMU() 进行IMU预积分
- *        estimator.setReloFrame() 设置重定位帧
+ *        estimator.setReloFrame() 设置重定位帧--不再接收...
  *        estimator.processImage() 处理图像帧：初始化，紧耦合的非线性优化
  */
 void process() {
