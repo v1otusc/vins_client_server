@@ -261,9 +261,11 @@ void process() {
           double dt_1 = img_t - current_time;
           double dt_2 = t - img_t;
           current_time = img_t;
+          // 下面的三个 ROS_ASSERT 要求图像时间戳处在两个 IMU 时间戳之间
           ROS_ASSERT(dt_1 >= 0);
           ROS_ASSERT(dt_2 >= 0);
           ROS_ASSERT(dt_1 + dt_2 > 0);
+          // 加权
           double w1 = dt_2 / (dt_1 + dt_2);
           double w2 = dt_1 / (dt_1 + dt_2);
           dx = w1 * dx + w2 * imu_msg->linear_acceleration.x;
@@ -278,7 +280,7 @@ void process() {
       }
 
       // set relocalization frame
-      // 
+      //
       /*sensor_msgs::PointCloudConstPtr relo_msg = NULL;
       while (!relo_buf.empty()) {
         relo_msg = relo_buf.front();

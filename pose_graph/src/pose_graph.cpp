@@ -14,10 +14,14 @@ PoseGraph::PoseGraph() {
   }
   earliest_loop_index = -1;
   latest_loop_index = -1;
+
+  // added by coxgraph
   last_sent_bvec = BowVector();
+
   t_drift = Eigen::Vector3d(0, 0, 0);
   yaw_drift = 0;
   r_drift = Eigen::Matrix3d::Identity();
+
   w_t_vio = Eigen::Vector3d(0, 0, 0);
   w_r_vio = Eigen::Matrix3d::Identity();
   global_index = 0;
@@ -36,6 +40,8 @@ void PoseGraph::registerPub(ros::NodeHandle &n) {
       n.advertise<visualization_msgs::MarkerArray>("pose_graph", 1000);
   for (int i = 1; i < 10; i++)
     pub_path[i] = n.advertise<nav_msgs::Path>("path_" + to_string(i), 1000);
+
+  // ==================== added by coxgraph ===========================
   vio_interface = new coxgraph::mod::VIOInterface(n, ros::NodeHandle("~"));
 }
 
@@ -207,16 +213,15 @@ void PoseGraph::addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop) {
       }
     }
   }
-  // posegraph_visualization->add_pose(P + Vector3d(VISUALIZATION_SHIFT_X,
-  // VISUALIZATION_SHIFT_Y, 0), Q);
 
+  // added by coxgraph
   publishKeyFrame(cur_kf);
-
   keyframelist.push_back(cur_kf);
   publish();
   m_keyframelist.unlock();
 }
 
+// added by coxgraph
 void PoseGraph::publishKeyFrame(KeyFrame *cur_kf) {
   if (last_sent_bvec.size()) {
     BowVector cur_bvec;
@@ -227,6 +232,21 @@ void PoseGraph::publishKeyFrame(KeyFrame *cur_kf) {
     else
       return;
   }
+
+  // comm_msgs::keyframe
+  /**
+   * Header                                    header
+   * int64                                     frameId
+   * int16                                     agentId
+   * int16                                     numKeyPts
+   * uint32[]                                  connections
+   * keypoint[]                                keyPts
+   * landmark[]                                landmarks
+   * sensor_msgs/Image                         keyPtsDescriptors
+   * sensor_msgs/Image                         debugImage
+   * nav_msgs/Odometry                         odometry
+   * 自定义 keyframe_msg 消息
+   */
   comm_msgs::keyframe keyframe_msg;
   keyframe_msg.header.stamp = time_obj_.fromSec(cur_kf->time_stamp);
   keyframe_msg.frameId = cur_kf->index;
@@ -236,6 +256,8 @@ void PoseGraph::publishKeyFrame(KeyFrame *cur_kf) {
   odom.header.stamp = time_obj_.fromSec(cur_kf->time_stamp);
   Eigen::Vector3d p_W_S;
   Eigen::Matrix3d R_W_S;
+
+  // vio_T_w_i
   cur_kf->getVioPose(p_W_S, R_W_S);
   Eigen::Quaterniond q_W_S(R_W_S);
   odom.pose.pose.position.x = p_W_S(0);
@@ -263,10 +285,7 @@ void PoseGraph::publishKeyFrame(KeyFrame *cur_kf) {
       keyframe_msg.keyPtsDescriptors, sensor_msgs::image_encodings::MONO8,
       combined_descriptor.rows, combined_descriptor.cols,
       combined_descriptor.step.buf[0], combined_descriptor.data);
-  //  sensor_msgs::fillImage(keyframe_msg.debugImage,
-  //    sensor_msgs::image_encodings::MONO8,
-  //    cur_kf->image.rows, cur_kf->image.cols,
-  //    cur_kf->image.step.buf[0], cur_kf->image.data);
+
   list<KeyFrame *>::reverse_iterator rit = keyframelist.rbegin();
   for (int i = 0; i < NUM_ODOM_CONNECTIONS; i++) {
     if (rit == keyframelist.rend()) break;
@@ -411,9 +430,9 @@ int PoseGraph::detectLoop(KeyFrame *keyframe, int frame_index) {
   db.query(keyframe->brief_descriptors, ret, 4, frame_index - 50);
   // printf("query time: %f", t_query.toc());
   // cout << "Searching for Image " << frame_index << ". " << ret << endl;
-
   TicToc t_add;
   db.add(keyframe->brief_descriptors);
+  
   // printf("add feature time: %f", t_add.toc());
   // ret[0] is the nearest neighbour's score. threshold change with neighour
   // score
@@ -918,7 +937,6 @@ void PoseGraph::loadPoseGraph() {
 
 void PoseGraph::publish() {
   for (int i = 1; i <= sequence_cnt; i++) {
-    // if (sequence_loop[i] == true || i == base_sequence)
     if (1 || i == base_sequence) {
       pub_pg_path.publish(path[i]);
       pub_path[i].publish(path[i]);
@@ -928,8 +946,6 @@ void PoseGraph::publish() {
   }
   base_path.header.frame_id = "world";
   pub_base_path.publish(base_path);
-  // posegraph_visualization->publish_by(pub_pose_graph,
-  // path[sequence_cnt].header);
 }
 
 void PoseGraph::updateKeyFrameLoop(int index,

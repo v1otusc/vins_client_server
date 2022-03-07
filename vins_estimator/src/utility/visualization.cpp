@@ -54,7 +54,7 @@ void pubLatestOdometry(const Eigen::Vector3d &P, const Eigen::Quaterniond &Q,
 
   nav_msgs::Odometry odometry;
   odometry.header = header;
-  // world -> odom
+  // change world -> odom
   odometry.header.frame_id = "odom";
   odometry.pose.pose.position.x = P.x();
   odometry.pose.pose.position.y = P.y();
@@ -129,11 +129,13 @@ void pubOdometry(const Estimator &estimator, const std_msgs::Header &header) {
 
     geometry_msgs::PoseStamped pose_stamped;
     pose_stamped.header = header;
+    // This expresses a transform from coordinate frame header.frame_id
     pose_stamped.header.frame_id = ORIGIN_FRAME_NAME;
     pose_stamped.pose = odometry.pose.pose;
     path.header = header;
     path.header.frame_id = ORIGIN_FRAME_NAME;
     path.poses.push_back(pose_stamped);
+    // 发布给 rviz 用于显示
     pub_path.publish(path);
 
     Vector3d correct_t;
@@ -156,6 +158,7 @@ void pubOdometry(const Estimator &estimator, const std_msgs::Header &header) {
     relo_path.poses.push_back(pose_stamped);
     pub_relo_path.publish(relo_path);
 
+    // This expresses a transform from coordinate frame header.frame_id
     geometry_msgs::TransformStamped msg_T_W_I;
     msg_T_W_I.header = header;
     msg_T_W_I.header.frame_id = ORIGIN_FRAME_NAME;
@@ -279,9 +282,6 @@ void pubPointCloud(const Estimator &estimator, const std_msgs::Header &header) {
     int used_num;
     used_num = it_per_id.feature_per_frame.size();
     if (!(used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2)) continue;
-    // if (it_per_id->start_frame > WINDOW_SIZE * 3.0 / 4.0 ||
-    // it_per_id->solve_flag != 1)
-    //        continue;
 
     if (it_per_id.start_frame == 0 && it_per_id.feature_per_frame.size() <= 2 &&
         it_per_id.solve_flag == 1) {
@@ -368,9 +368,6 @@ void pubKeyframe(const Estimator &estimator) {
     odometry.pose.pose.orientation.y = R.y();
     odometry.pose.pose.orientation.z = R.z();
     odometry.pose.pose.orientation.w = R.w();
-    // printf("time: %f t: %f %f %f r: %f %f %f %f\n",
-    // odometry.header.stamp.toSec(), P.x(), P.y(), P.z(), R.w(), R.x(), R.y(),
-    // R.z());
 
     pub_keyframe_pose.publish(odometry);
 

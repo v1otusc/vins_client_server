@@ -49,10 +49,13 @@ int VISUALIZE_IMU_FORWARD;
 int LOOP_CLOSURE;
 int FAST_RELOCALIZATION;
 
+// ==================== added by coxgraph ===========================
 int AGENT_ID;
 int NUM_ODOM_CONNECTIONS;
 bool ENABLE_OPTIMIZATION = false;
+// 间隔 N_FRAME 检测一次回环
 int LC_EVERY_N_FRAME = 100;
+// ===================================================================
 
 camodocal::CameraPtr m_camera;
 Eigen::Vector3d tic;
@@ -392,11 +395,10 @@ void command() {
       printf(
           "save pose graph finish\nyou can set 'load_previous_pose_graph' "
           "to 1 in the config file to reuse it next time\n");
-      // printf("program shutting down...\n");
-      // ros::shutdown();
     }
+    // 按下 'n' 则创建一个新的图像序列
     if (c == 'n') new_sequence();
-
+    // 线程休眠 5ms
     std::chrono::milliseconds dura(5);
     std::this_thread::sleep_for(dura);
   }
@@ -412,10 +414,14 @@ int main(int argc, char **argv) {
   n.getParam("visualization_shift_y", VISUALIZATION_SHIFT_Y);
   n.getParam("skip_cnt", SKIP_CNT);
   n.getParam("skip_dis", SKIP_DIS);
+  // added by vins_cs
   n.getParam("agent_id", AGENT_ID);
+
   std::string config_file;
   n.getParam("config_file", config_file);
+  // added by vins_cs
   n.getParam("num_odom_connections", NUM_ODOM_CONNECTIONS);
+  
   cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
   if (!fsSettings.isOpened()) {
     std::cerr << "ERROR: Wrong path to settings" << std::endl;
@@ -458,6 +464,7 @@ int main(int argc, char **argv) {
     fout.close();
     fsSettings.release();
 
+    // 加载之前保存的地图
     if (LOAD_PREVIOUS_POSE_GRAPH) {
       printf("load pose graph\n");
       m_process.lock();
@@ -498,7 +505,9 @@ int main(int argc, char **argv) {
   std::thread measurement_process;
   std::thread keyboard_command_process;
 
+  // process 线程，是 pose_graph 的主线程
   measurement_process = std::thread(process);
+  // command 线程，监听命令行中键盘的输入
   keyboard_command_process = std::thread(command);
 
   ros::spin();
